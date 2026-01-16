@@ -1,33 +1,33 @@
 import os
 from flask import Flask, render_template, redirect
 from pymongo import MongoClient
+from bson.objectid import ObjectId
 
 app = Flask(__name__)
 
-# --- CONFIGURATION ---
+# MongoDB Setup (Same as Bot)
 MONGO_URI = "mongodb+srv://mybotuser:OUyx645TaQVQlQiM@trunj.cy6jth5.mongodb.net/?appName=trunj"
 client = MongoClient(MONGO_URI)
-db = client['telegram_bot']
-collection = db['files']
-
-# Aapka Bot Username (Bina @ ke)
-BOT_USERNAME = "Filesaver777_bot"
+db = client['telegram_bot_db'] # Bot bhi isi DB mein save kar raha hai
+files_col = db['stored_files'] # Bot isi collection mein daal raha hai
 
 @app.route('/')
 def home():
-    return "Website is Live and Running!"
+    return "<h1>Website is Online</h1><p>Send a file to the bot to get a link.</p>"
 
 @app.route('/file/<file_id>')
-def index(file_id):
-    file_data = collection.find_one({"file_id": file_id})
-    if file_data:
-        return render_template('index.html', file_id=file_id)
-    return "File Not Found (404 Error)", 404
+def get_file(file_id):
+    try:
+        # Database se file dhundna ID ke zariye
+        file_data = files_col.find_one({"_id": ObjectId(file_id)})
+        
+        if file_data:
+            # Agar file mil gayi toh download page dikhao
+            return f"<h1>File Found: {file_data['file_name']}</h1><p>Ads will appear here.</p><button>Download Now</button>"
+        
+        return "<h1>404: File Not Found in Database</h1>", 404
+    except Exception as e:
+        return f"<h1>Error: {str(e)}</h1>", 400
 
-@app.route('/get-link/<file_id>')
-def get_link(file_id):
-    # User ko wapas aapke bot par redirect karega
-    return redirect(f"https://t.me/{BOT_USERNAME}?start={file_id}")
-
-if __name__ == '__main__':
-    app.run()
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=10000)
